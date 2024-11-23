@@ -1,28 +1,5 @@
 # gigagig
 
-gigagig/
-├── app/
-│   ├── __init__.py
-│   ├── forms.py
-│   ├── models.py
-│   ├── routes.py
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── index.html
-│   │   ├── login.html
-│   │   ├── register.html
-│   │   ├── user.html
-│   │   ├── edit_profile.html
-│   │   ├── create_gig.html
-│   │   └── gig_detail.html
-│   └── static/
-│       └── style.css
-├── migrations/
-├── venv/
-├── requirements.txt
-├── run.py
-└── README.md
-
 Installation
 Prerequisites
 Python 3.7 or higher: Ensure you have Python installed on your machine.
