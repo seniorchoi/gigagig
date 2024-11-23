@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ user.username }}</h1>
+  <p>{{ user.about_me }}</p>
+  <p>Member since {{ user.member_since.strftime('%Y-%m-%d') }}</p>
+  <p>Last seen on {{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+
+  {% if current_user.username == user.username %}
+    <p><a href="{{ url_for('edit_profile') }}">Edit Profile</a></p>
+  {% endif %}
+
+  <!-- Display user's gigs -->
+  <h2>My Gigs</h2>
+  {% if user.gigs %}
+    {% for gig in user.gigs %}
+      <div>
+        <h3><a href="{{ url_for('gig_detail', gig_id=gig.id) }}">{{ gig.title }}</a></h3>
+        <p>{{ gig.description }}</p>
+        <p>Price: ${{ gig.price }}</p>
+        <p>Category: {{ gig.category.name }}</p>
+        <p>Location: {{ gig.location }}</p>
+        <p>Travel Radius: {{ gig.travel_radius }} km</p>
+        <p>Posted on {{ gig.timestamp.strftime('%Y-%m-%d') }}</p>
+        {% if current_user == user %}
+          <a href="{{ url_for('edit_gig', gig_id=gig.id) }}">Edit</a>
+          <form action="{{ url_for('delete_gig', gig_id=gig.id) }}" method="post" style="display:inline;">
+            {{ form.hidden_tag() }}
+            <input type="submit" value="Delete">
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>You have no gigs. <a href="{{ url_for('create_gig') }}">Create one now</a>.</p>
+  {% endif %}
+
+  <!-- Messaging Form -->
+  {% if current_user.is_authenticated and current_user != user %}
+    <h2>Send a Message to {{ user.username }}</h2>
+    <form method="post">
+      {{ form.hidden_tag() }}
+      <p>
+        {{ form.message.label }}<br>
+        {{ form.message(rows=5, cols=40) }}<br>
+        {% for error in form.message.errors %}
+          <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+      </p>
+      <p>{{ form.submit() }}</p>
+    </form>
+  {% endif %}
+{% endblock %}

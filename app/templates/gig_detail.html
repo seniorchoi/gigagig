@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ gig.title }}</h1>
+  <p>{{ gig.description }}</p>
+  <p>Price: ${{ gig.price }}</p>
+  <p>Category: {{ gig.category_obj.name }}</p>
+  <p>Location: {{ gig.location }}</p>
+  <p>Travel Radius: {{ gig.travel_radius }} km</p>
+  <p>Posted by <a href="{{ url_for('user', username=gig.seller.username) }}">{{ gig.seller.username }}</a> on {{ gig.timestamp.strftime('%Y-%m-%d') }}</p>
+  {% if current_user == gig.seller %}
+    <a href="{{ url_for('edit_gig', gig_id=gig.id) }}">Edit Gig</a>
+    <form action="{{ url_for('delete_gig', gig_id=gig.id) }}" method="post" style="display:inline;">
+      {{ form.hidden_tag() }}
+      <input type="submit" value="Delete Gig">
+    </form>
+  {% endif %}
+{% endblock %}

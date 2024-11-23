@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Create a New Gig</h1>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <p>
+      {{ form.title.label }}<br>
+      {{ form.title(size=64) }}<br>
+      {% for error in form.title.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>
+      {{ form.description.label }}<br>
+      {{ form.description(rows=5, cols=40) }}<br>
+      {% for error in form.description.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>
+      {{ form.category.label }}<br>
+      {{ form.category(size=64) }}<br>
+      {% for error in form.category.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+      <br><a href="{{ url_for('add_category') }}">Add new category</a>
+    </p>
+    <p>
+      {{ form.price.label }}<br>
+      {{ form.price(size=10) }}<br>
+      {% for error in form.price.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>
+      {{ form.location.label }}<br>
+      {{ form.location(size=140) }}<br>
+      {% for error in form.location.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>
+      {{ form.travel_radius.label }}<br>
+      {{ form.travel_radius(size=10) }}<br>
+      {% for error in form.travel_radius.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+  </form>
+{% endblock %}
