@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>My Gigs</h1>
+{% if gigs %}
+    <div class="list-group">
+        {% for gig in gigs %}
+            <a href="{{ url_for('gig_detail', gig_id=gig.id) }}" class="list-group-item list-group-item-action">
+                <h5 class="mb-1">{{ gig.title }}</h5>
+                <p class="mb-1">{{ gig.description }}</p>
+                <small>Price: ${{ gig.price }} | Location: {{ gig.location }}</small>
+            </a>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>You have no gigs. <a href="{{ url_for('create_gig') }}">Create one now</a>.</p>
+{% endif %}
+{% endblock %}

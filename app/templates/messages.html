@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Your Messages</h1>
+{% for message in messages %}
+    <div>
+        <p>From: <a href="{{ url_for('user', username=message.sender.username) }}">{{ message.sender.username }}</a></p>
+        <p>{{ message.body }}</p>
+        <p>Sent on {{ message.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+{% endfor %}
+{% endblock %}

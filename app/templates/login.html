@@ -1,25 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Sign In</h1>
-  <form method="post">
+<h1>Sign In</h1>
+<form method="post">
     {{ form.hidden_tag() }}
-    <p>
-      {{ form.username.label }}<br>
-      {{ form.username(size=32) }}<br>
-      {% for error in form.username.errors %}
-        <span style="color: red;">[{{ error }}]</span>
-      {% endfor %}
-    </p>
-    <p>
-      {{ form.password.label }}<br>
-      {{ form.password(size=32) }}<br>
-      {% for error in form.password.errors %}
-        <span style="color: red;">[{{ error }}]</span>
-      {% endfor %}
-    </p>
-    <p>
-      {{ form.remember_me() }} {{ form.remember_me.label }}
-    </p>
-    <p>{{ form.submit() }}</p>
-  </form>
+    <div class="form-group">
+        {{ form.username.label(class="form-label") }}
+        {{ form.username(class="form-control", placeholder="Enter username") }}
+        {% for error in form.username.errors %}
+            <small class="form-text text-danger">{{ error }}</small>
+        {% endfor %}
+    </div>
+    <div class="form-group">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control", placeholder="Enter password") }}
+        {% for error in form.password.errors %}
+            <small class="form-text text-danger">{{ error }}</small>
+        {% endfor %}
+    </div>
+    <div class="form-check">
+        {{ form.remember_me(class="form-check-input") }}
+        {{ form.remember_me.label(class="form-check-label") }}
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+</form>
 {% endblock %}

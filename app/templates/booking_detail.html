@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Booking Details</h1>
+<p>Gig: {{ booking.gig.title }}</p>
+<p>Buyer: {{ booking.buyer.username }}</p>
+<p>Booking Date: {{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</p>
+<p>Status: {{ booking.status }}</p>
+{% if current_user == booking.gig.seller and booking.status == 'Pending' %}
+    <form method="post" action="{{ url_for('confirm_booking', booking_id=booking.id) }}">
+        {{ form.hidden_tag() }}
+        <input type="submit" value="Confirm Booking">
+    </form>
+{% endif %}
+
+{% if booking.status == 'Confirmed' and current_user == booking.buyer %}
+    <a href="{{ url_for('review_gig', gig_id=booking.gig.id) }}">Leave a Review</a>
+{% endif %}
+{% endblock %}

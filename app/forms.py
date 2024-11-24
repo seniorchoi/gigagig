@@ -1,8 +1,10 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, IntegerField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length
 from wtforms_sqlalchemy.fields import QuerySelectField
 from app.models import User, Category
+from wtforms.fields import DateTimeLocalField
+from flask_wtf.file import FileField, FileAllowed
 
 
 class RegistrationForm(FlaskForm):
@@ -35,12 +37,18 @@ class LoginForm(FlaskForm):
 class EditProfileForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     about_me = TextAreaField('About me', validators=[Length(min=0, max=140)])
+    profile_picture = FileField('Update Profile Picture', validators=[FileAllowed(['jpg', 'png'])])
     submit = SubmitField('Submit')
 
 
 
 def category_query():
     return Category.query
+
+
+
+class EmptyForm(FlaskForm):
+    submit = SubmitField('Submit')
 
 
 
@@ -67,9 +75,29 @@ class CategoryForm(FlaskForm):
 
 
 class MessageForm(FlaskForm):
-    message = TextAreaField('Message', validators=[DataRequired(), Length(min=1, max=500)])
+    message = TextAreaField('Message', validators=[DataRequired(), Length(min=1, max=1000)])
     submit = SubmitField('Send')
 
 
 
-    
+class BookingForm(FlaskForm):
+    booking_date = DateTimeLocalField('Booking Date and Time', format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
+    submit = SubmitField('Book Now')
+
+
+
+class SearchForm(FlaskForm):
+    keyword = StringField('Keyword', validators=[DataRequired()])
+    category = QuerySelectField('Category', query_factory=category_query, get_label='name', allow_blank=True)
+    location = StringField('Location')
+    submit = SubmitField('Search')
+
+
+
+class ReviewForm(FlaskForm):
+    rating = IntegerField('Rating (1-5)', validators=[DataRequired()])
+    comment = TextAreaField('Comment', validators=[DataRequired()])
+    submit = SubmitField('Submit Review')
+
+
+

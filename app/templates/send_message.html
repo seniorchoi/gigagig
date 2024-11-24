@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Send Message to {{ recipient.username }}</h1>
+<form method="post">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.message.label }}<br>
+        {{ form.message(rows=5, cols=40) }}<br>
+        {% for error in form.message.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

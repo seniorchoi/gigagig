@@ -1,10 +1,12 @@
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import login_user, current_user, logout_user, login_required
 from app import app, db
-from app.forms import RegistrationForm, LoginForm, EditProfileForm, GigForm, CategoryForm, MessageForm
-from app.models import User, Gig, Category
+from app.forms import RegistrationForm, LoginForm, EditProfileForm, GigForm, CategoryForm, MessageForm, ReviewForm, SearchForm, BookingForm, EmptyForm
+from app.models import User, Gig, Category, Message, Review, Booking
 from werkzeug.urls import url_parse
 from datetime import datetime
+import os
+from PIL import Image
 
 
 
@@ -72,8 +74,6 @@ def logout():
 
 
 
-
-
 @app.route('/user/<username>', methods=['GET', 'POST'])
 @login_required
 def user(username):
@@ -87,11 +87,29 @@ def user(username):
 
 
 
+def save_picture(form_picture):
+    random_hex = os.urandom(8).hex()
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
+    
+    # Resize the image
+    output_size = (125, 125)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+
+    return picture_fn
+
+
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     form = EditProfileForm()
     if form.validate_on_submit():
+        if form.profile_picture.data:
+            picture_file = save_picture(form.profile_picture.data)
+            current_user.profile_image = picture_file
         current_user.username = form.username.data
         current_user.about_me = form.about_me.data
         db.session.commit()
@@ -101,6 +119,7 @@ def edit_profile():
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
+
 
 
 @app.route('/create_gig', methods=['GET', 'POST'])
@@ -125,10 +144,11 @@ def create_gig():
 
 
 
-@app.route('/gig/<int:gig_id>')
+@app.route('/gig/<int:gig_id>', methods=['GET', 'POST'])
 def gig_detail(gig_id):
     gig = Gig.query.get_or_404(gig_id)
-    return render_template('gig_detail.html', gig=gig)
+    form = EmptyForm()
+    return render_template('gig_detail.html', gig=gig, form=form)
 
 
 
@@ -190,5 +210,127 @@ def add_category():
         flash('New category added.')
         return redirect(url_for('create_gig'))
     return render_template('add_category.html', title='Add Category', form=form)
+
+
+
+@app.route('/send_message/<username>', methods=['GET', 'POST'])
+@login_required
+def send_message(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    form = MessageForm()
+    if form.validate_on_submit():
+        msg = Message(sender=current_user, recipient=user, body=form.message.data)
+        db.session.add(msg)
+        db.session.commit()
+        flash('Your message has been sent.')
+        return redirect(url_for('user', username=username))
+    return render_template('send_message.html', form=form, recipient=user)
+
+
+
+@app.route('/messages')
+@login_required
+def messages():
+    messages = current_user.received_messages.order_by(Message.timestamp.desc()).all()
+    return render_template('messages.html', messages=messages)
+
+
+
+@app.route('/book/<int:gig_id>', methods=['GET', 'POST'])
+@login_required
+def book(gig_id):
+    gig = Gig.query.get_or_404(gig_id)
+    form = BookingForm()
+    if form.validate_on_submit():
+        booking = Booking(
+            gig=gig,
+            buyer=current_user,
+            booking_date=form.booking_date.data
+        )
+        db.session.add(booking)
+        db.session.commit()
+        flash('Your booking request has been sent!')
+        return redirect(url_for('booking_detail', booking_id=booking.id))
+    return render_template('book.html', form=form, gig=gig)
+
+
+
+@app.route('/booking/<int:booking_id>')
+@login_required
+def booking_detail(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.buyer != current_user and booking.gig.seller != current_user:
+        flash('You are not authorized to view this booking.')
+        return redirect(url_for('index'))
+    return render_template('booking_detail.html', booking=booking)
+
+
+
+@app.route('/confirm_booking/<int:booking_id>', methods=['POST'])
+@login_required
+def confirm_booking(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.gig.seller != current_user:
+        flash('You are not authorized to confirm this booking.')
+        return redirect(url_for('index'))
+    booking.status = 'Confirmed'
+    db.session.commit()
+    flash('Booking confirmed!')
+    return redirect(url_for('booking_detail', booking_id=booking.id))
+
+
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    form = SearchForm()
+    gigs = []
+    if form.validate_on_submit():
+        query = Gig.query
+        if form.keyword.data:
+            query = query.filter(Gig.title.ilike(f"%{form.keyword.data}%") | Gig.description.ilike(f"%{form.keyword.data}%"))
+        if form.category.data:
+            query = query.filter_by(category=form.category.data)
+        if form.location.data:
+            query = query.filter(Gig.location.ilike(f"%{form.location.data}%"))
+        gigs = query.all()
+    return render_template('search.html', form=form, gigs=gigs)
+
+
+
+@app.route('/review/<int:gig_id>', methods=['GET', 'POST'])
+@login_required
+def review_gig(gig_id):
+    gig = Gig.query.get_or_404(gig_id)
+    form = ReviewForm()
+    if form.validate_on_submit():
+        review = Review(
+            gig=gig,
+            user=current_user,
+            rating=form.rating.data,
+            comment=form.comment.data
+        )
+        db.session.add(review)
+        db.session.commit()
+        flash('Your review has been submitted.')
+        return redirect(url_for('gig_detail', gig_id=gig.id))
+    return render_template('review.html', form=form, gig=gig)
+
+
+
+@app.route('/my_gigs')
+@login_required
+def my_gigs():
+    gigs = current_user.gigs.order_by(Gig.timestamp.desc()).all()
+    return render_template('my_gigs.html', gigs=gigs)
+
+
+
+@app.route('/my_bookings')
+@login_required
+def my_bookings():
+    # Bookings where the user is the buyer
+    bookings = Booking.query.filter_by(buyer_id=current_user.id).order_by(Booking.timestamp.desc()).all()
+    return render_template('my_bookings.html', bookings=bookings)
+
 
 

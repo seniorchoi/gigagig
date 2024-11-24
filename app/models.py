@@ -4,6 +4,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy.orm import relationship
 
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -12,6 +14,7 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     member_since = db.Column(db.DateTime, default=datetime.utcnow)
+    profile_image = db.Column(db.String(20), nullable=False, default='default.jpg')
     gigs = db.relationship('Gig', back_populates='seller', lazy='dynamic')
 
     def set_password(self, password):
@@ -23,9 +26,12 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
+
+
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))
+
 
 
 class Gig(db.Model):
@@ -46,6 +52,13 @@ class Gig(db.Model):
     def __repr__(self):
         return f'<Gig {self.title}>'
     
+    @property
+    def average_rating(self):
+        if not self.reviews:
+            return None
+        total = sum([review.rating for review in self.reviews])
+        return total / len(self.reviews)
+    
 
 
 class Category(db.Model):
@@ -58,3 +71,51 @@ class Category(db.Model):
 
 
 
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    body = db.Column(db.String(500), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    sender = db.relationship(
+        'User',
+        foreign_keys=[sender_id],
+        backref=db.backref('sent_messages', lazy='dynamic')
+    )
+    recipient = db.relationship(
+        'User',
+        foreign_keys=[recipient_id],
+        backref=db.backref('received_messages', lazy='dynamic')
+    )
+
+    def __repr__(self):
+        return f'<Message {self.body}>'
+
+
+
+class Booking(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gig_id = db.Column(db.Integer, db.ForeignKey('gig.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    booking_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), default='Pending')
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    gig = db.relationship('Gig', backref='bookings')
+    buyer = db.relationship('User', backref='bookings')
+
+    def __repr__(self):
+        return f'<Booking {self.id}>'
+    
+
+
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gig_id = db.Column(db.Integer, db.ForeignKey('gig.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    gig = db.relationship('Gig', backref='reviews')
+    user = db.relationship('User', backref='reviews')
