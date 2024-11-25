@@ -15,9 +15,9 @@ Setup Instructions
 Clone the Repository
 
 
-git clone https://github.com/yourusername/gig-marketplace.git
+git clone https://github.com/yourusername/gigagig.git
 
-cd gig-marketplace
+cd gigagig
 
 Create a Virtual Environment
 
@@ -119,7 +119,7 @@ Fork the Repository: Click on the "Fork" button on GitHub.
 Clone Your Fork:
 
 
-git clone https://github.com/yourusername/gig-marketplace.git
+git clone https://github.com/yourusername/gigagig.git
 
 Create a Feature Branch:
 

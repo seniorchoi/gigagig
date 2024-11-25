@@ -1,19 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-  <h1>My Bookings</h1>
+  <h1>Bookings for My Gigs</h1>
   {% if bookings %}
     <div class="list-group">
       {% for booking in bookings %}
         <a href="{{ url_for('booking_detail', booking_id=booking.id) }}" class="list-group-item list-group-item-action">
           <h5>{{ booking.gig.title }}</h5>
+          <p>Buyer: {{ booking.buyer.username }}</p>
           <p>Booking Date: {{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</p>
           <p>Status: {{ booking.status }}</p>
         </a>
       {% endfor %}
     </div>
   {% else %}
-    <p>You have no bookings.</p>
+    <p>No bookings for your gigs.</p>
   {% endif %}
 </div>
 {% endblock %}

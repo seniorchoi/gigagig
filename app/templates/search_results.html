@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+  <h1>Search Results</h1>
+  {% if gigs %}
+    <p>Showing results for "{{ keyword }}" in "{{ location }}":</p>
+    <div class="list-group">
+      {% for gig in gigs %}
+        <a href="{{ url_for('gig_detail', gig_id=gig.id) }}" class="list-group-item list-group-item-action">
+          <h5>{{ gig.title }}</h5>
+          <p>{{ gig.description }}</p>
+          <small>Category: {{ gig.category.name }} | Location: {{ gig.location }}</small>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No gigs found matching your criteria.</p>
+  {% endif %}
+</div>
+{% endblock %}

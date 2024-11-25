@@ -1,4 +1,4 @@
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, current_app
 from flask_login import login_user, current_user, logout_user, login_required
 from app import app, db
 from app.forms import RegistrationForm, LoginForm, EditProfileForm, GigForm, CategoryForm, MessageForm, ReviewForm, SearchForm, BookingForm, EmptyForm
@@ -7,7 +7,7 @@ from werkzeug.urls import url_parse
 from datetime import datetime
 import os
 from PIL import Image
-
+import stripe
 
 
 @app.before_request
@@ -238,44 +238,50 @@ def messages():
 
 @app.route('/book/<int:gig_id>', methods=['GET', 'POST'])
 @login_required
-def book(gig_id):
+def book_gig(gig_id):
     gig = Gig.query.get_or_404(gig_id)
     form = BookingForm()
     if form.validate_on_submit():
         booking = Booking(
             gig=gig,
             buyer=current_user,
-            booking_date=form.booking_date.data
+            booking_date=form.booking_date.data,
+            status='Pending'
         )
         db.session.add(booking)
         db.session.commit()
         flash('Your booking request has been sent!')
         return redirect(url_for('booking_detail', booking_id=booking.id))
-    return render_template('book.html', form=form, gig=gig)
+    return render_template('book_gig.html', title='Book Gig', form=form, gig=gig)
 
 
 
 @app.route('/booking/<int:booking_id>')
 @login_required
 def booking_detail(booking_id):
+    form = EmptyForm()
     booking = Booking.query.get_or_404(booking_id)
     if booking.buyer != current_user and booking.gig.seller != current_user:
         flash('You are not authorized to view this booking.')
         return redirect(url_for('index'))
-    return render_template('booking_detail.html', booking=booking)
+    return render_template('booking_detail.html', booking=booking, form=form)
 
 
 
-@app.route('/confirm_booking/<int:booking_id>', methods=['POST'])
+@app.route('/booking/<int:booking_id>/update_status', methods=['POST'])
 @login_required
-def confirm_booking(booking_id):
+def update_booking_status(booking_id):
     booking = Booking.query.get_or_404(booking_id)
     if booking.gig.seller != current_user:
-        flash('You are not authorized to confirm this booking.')
+        flash('You are not authorized to update this booking.')
         return redirect(url_for('index'))
-    booking.status = 'Confirmed'
+    action = request.form.get('action')
+    if action == 'Confirm':
+        booking.status = 'Confirmed'
+    elif action == 'Decline':
+        booking.status = 'Declined'
     db.session.commit()
-    flash('Booking confirmed!')
+    flash(f'Booking has been {booking.status.lower()}.')
     return redirect(url_for('booking_detail', booking_id=booking.id))
 
 
@@ -283,17 +289,41 @@ def confirm_booking(booking_id):
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     form = SearchForm()
-    gigs = []
     if form.validate_on_submit():
-        query = Gig.query
-        if form.keyword.data:
-            query = query.filter(Gig.title.ilike(f"%{form.keyword.data}%") | Gig.description.ilike(f"%{form.keyword.data}%"))
-        if form.category.data:
-            query = query.filter_by(category=form.category.data)
-        if form.location.data:
-            query = query.filter(Gig.location.ilike(f"%{form.location.data}%"))
-        gigs = query.all()
-    return render_template('search.html', form=form, gigs=gigs)
+        keyword = form.keyword.data
+        category = form.category.data
+        location = form.location.data
+        return redirect(url_for('search_results', keyword=keyword, category_id=category.id if category else None, location=location))
+    return render_template('search.html', title='Search Gigs', form=form)
+
+
+
+@app.route('/search_results')
+def search_results():
+    keyword = request.args.get('keyword', '')
+    category_id = request.args.get('category_id', type=int)
+    location = request.args.get('location', '')
+
+    # Start with all gigs
+    query = Gig.query
+
+    # Filter by keyword
+    if keyword:
+        query = query.filter(
+            Gig.title.ilike(f'%{keyword}%') |
+            Gig.description.ilike(f'%{keyword}%')
+        )
+
+    # Filter by category
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+
+    # Filter by location
+    if location:
+        query = query.filter(Gig.location.ilike(f'%{location}%'))
+
+    gigs = query.all()
+    return render_template('search_results.html', gigs=gigs, keyword=keyword, location=location)
 
 
 
@@ -328,9 +358,57 @@ def my_gigs():
 @app.route('/my_bookings')
 @login_required
 def my_bookings():
-    # Bookings where the user is the buyer
     bookings = Booking.query.filter_by(buyer_id=current_user.id).order_by(Booking.timestamp.desc()).all()
     return render_template('my_bookings.html', bookings=bookings)
+
+
+
+@app.route('/bookings_for_my_gigs')
+@login_required
+def bookings_for_my_gigs():
+    gigs = current_user.gigs.all()
+    bookings = Booking.query.filter(Booking.gig_id.in_([gig.id for gig in gigs])).order_by(Booking.timestamp.desc()).all()
+    return render_template('bookings_for_my_gigs.html', bookings=bookings)
+
+
+
+@app.route('/create-checkout-session/<int:booking_id>', methods=['POST'])
+@login_required
+def create_checkout_session(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.buyer != current_user:
+        flash('You are not authorized to make this payment.')
+        return redirect(url_for('index'))
+    
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{
+            'price_data': {
+                'currency': 'usd',
+                'unit_amount': int(booking.gig.price * 100),  # Amount in cents
+                'product_data': {
+                    'name': booking.gig.title,
+                    'description': booking.gig.description,
+                },
+            },
+            'quantity': 1,
+        }],
+        mode='payment',
+        success_url=url_for('payment_success', booking_id=booking.id, _external=True),
+        cancel_url=url_for('booking_detail', booking_id=booking.id, _external=True),
+    )
+    return redirect(session.url, code=303)
+
+
+
+@app.route('/payment_success/<int:booking_id>')
+@login_required
+def payment_success(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    booking.status = 'Paid'
+    db.session.commit()
+    flash('Payment successful! Your booking is confirmed.')
+    return redirect(url_for('booking_detail', booking_id=booking.id))
 
 
 

@@ -87,7 +87,7 @@ class BookingForm(FlaskForm):
 
 
 class SearchForm(FlaskForm):
-    keyword = StringField('Keyword', validators=[DataRequired()])
+    keyword = StringField('Keyword')
     category = QuerySelectField('Category', query_factory=category_query, get_label='name', allow_blank=True)
     location = StringField('Location')
     submit = SubmitField('Search')

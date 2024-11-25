@@ -102,10 +102,10 @@ class Booking(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     gig = db.relationship('Gig', backref='bookings')
-    buyer = db.relationship('User', backref='bookings')
+    buyer = db.relationship('User', backref='purchases')
 
     def __repr__(self):
-        return f'<Booking {self.id}>'
+        return f'<Booking {self.id} - {self.status}>'
     
 
 

@@ -1,18 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Booking Details</h1>
-<p>Gig: {{ booking.gig.title }}</p>
-<p>Buyer: {{ booking.buyer.username }}</p>
-<p>Booking Date: {{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</p>
-<p>Status: {{ booking.status }}</p>
-{% if current_user == booking.gig.seller and booking.status == 'Pending' %}
-    <form method="post" action="{{ url_for('confirm_booking', booking_id=booking.id) }}">
-        {{ form.hidden_tag() }}
-        <input type="submit" value="Confirm Booking">
+<div class="container">
+  <h1>Booking Details</h1>
+  <p><strong>Gig:</strong> <a href="{{ url_for('gig_detail', gig_id=booking.gig.id) }}">{{ booking.gig.title }}</a></p>
+  <p><strong>Buyer:</strong> {{ booking.buyer.username }}</p>
+  <p><strong>Booking Date:</strong> {{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</p>
+  <p><strong>Status:</strong> {{ booking.status }}</p>
+  {% if current_user == booking.gig.seller and booking.status == 'Pending' %}
+    <form method="post" action="{{ url_for('update_booking_status', booking_id=booking.id) }}">
+      {{ form.hidden_tag() }}
+      <button name="action" value="Confirm" class="btn btn-success">Confirm</button>
+      <button name="action" value="Decline" class="btn btn-danger">Decline</button>
     </form>
-{% endif %}
-
-{% if booking.status == 'Confirmed' and current_user == booking.buyer %}
-    <a href="{{ url_for('review_gig', gig_id=booking.gig.id) }}">Leave a Review</a>
-{% endif %}
+  {% endif %}
+    {% if current_user == booking.buyer and booking.status == 'Pending' %}
+        <form action="{{ url_for('create_checkout_session', booking_id=booking.id) }}" method="POST">
+            {{ form.hidden_tag() }}
+            <button type="submit" class="btn btn-primary">Pay Now</button>
+        </form>
+    {% endif %}
+</div>
 {% endblock %}

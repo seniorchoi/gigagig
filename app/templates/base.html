@@ -2,7 +2,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>{% block title %}Gig Marketplace{% endblock %}</title>
+    <title>{% block title %}Gigagig{% endblock %}</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
     <!-- Optional theme -->
@@ -11,55 +11,72 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-      <a class="navbar-brand" href="{{ url_for('index') }}">Gig Marketplace</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-              {% if current_user.is_authenticated %}
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('user', username=current_user.username) }}">Profile</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('edit_profile') }}">Edit Profile</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('create_gig') }}">Create Gig</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('my_gigs') }}">My Gigs</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('my_bookings') }}">My Bookings</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('messages') }}">Messages</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('search') }}">Search Gigs</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-                  </li>
-                  <li class="nav-item">
-                      <span class="navbar-text">Logged in as {{ current_user.username }}</span>
-                  </li>
-              {% else %}
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('register') }}">Register</a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="{{ url_for('search') }}">Search Gigs</a>
-                  </li>
-              {% endif %}
-          </ul>
-      </div>
-  </nav>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Gigagig</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav mr-auto">
+            {% if current_user.is_authenticated %}
+                <!-- Seller Dropdown -->
+                <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="sellerDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Selling
+                </a>
+                <div class="dropdown-menu" aria-labelledby="sellerDropdown">
+                    <a class="dropdown-item" href="{{ url_for('create_gig') }}">Create Gig</a>
+                    <a class="dropdown-item" href="{{ url_for('my_gigs') }}">My Gigs</a>
+                    <a class="dropdown-item" href="{{ url_for('bookings_for_my_gigs') }}">Bookings for My Gigs</a>
+                </div>
+                </li>
+                <!-- Buyer Dropdown -->
+                <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="buyerDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Buying
+                </a>
+                <div class="dropdown-menu" aria-labelledby="buyerDropdown">
+                    <a class="dropdown-item" href="{{ url_for('search') }}">Search Gigs</a>
+                    <a class="dropdown-item" href="{{ url_for('my_bookings') }}">My Bookings</a>
+                </div>
+                </li>
+                <!-- Messages Link -->
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('messages') }}">Messages</a>
+                </li>
+            {% else %}
+                <!-- Links for Unauthenticated Users -->
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('search') }}">Search Gigs</a>
+                </li>
+            {% endif %}
+            </ul>
+            <ul class="navbar-nav">
+            {% if current_user.is_authenticated %}
+                <!-- Profile Dropdown -->
+                <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{ current_user.username }}
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+                    <a class="dropdown-item" href="{{ url_for('user', username=current_user.username) }}">Profile</a>
+                    <a class="dropdown-item" href="{{ url_for('edit_profile') }}">Edit Profile</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a>
+                </div>
+                </li>
+            {% else %}
+                <!-- Login and Register Links -->
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                </li>
+            {% endif %}
+            </ul>
+        </div>
+    </nav>
   <div class="container mt-4">
       {% with messages = get_flashed_messages() %}
       {% if messages %}
