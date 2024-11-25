@@ -54,10 +54,10 @@ class Gig(db.Model):
     
     @property
     def average_rating(self):
-        if not self.reviews:
-            return None
-        total = sum([review.rating for review in self.reviews])
-        return total / len(self.reviews)
+        if self.reviews:
+            total = sum(review.rating for review in self.reviews)
+            return round(total / len(self.reviews), 2)
+        return None
     
 
 
@@ -103,6 +103,7 @@ class Booking(db.Model):
 
     gig = db.relationship('Gig', backref='bookings')
     buyer = db.relationship('User', backref='purchases')
+    review = db.relationship('Review', backref='booking', uselist=False)
 
     def __repr__(self):
         return f'<Booking {self.id} - {self.status}>'
@@ -112,10 +113,12 @@ class Booking(db.Model):
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     gig_id = db.Column(db.Integer, db.ForeignKey('gig.id'), nullable=False)
+    booking_id = db.Column(db.Integer, db.ForeignKey('booking.id'), nullable=False, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     gig = db.relationship('Gig', backref='reviews')
+    #booking = db.relationship('Booking', backref='review')
     user = db.relationship('User', backref='reviews')

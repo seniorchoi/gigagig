@@ -1,8 +1,8 @@
-"""Add Review model
+"""Add booking_id to Review model
 
-Revision ID: b79c03df3eda
+Revision ID: a46f9b694ae4
 Revises: 
-Create Date: 2024-11-24 10:28:11.031688
+Create Date: 2024-11-25 17:40:48.507294
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b79c03df3eda'
+revision = 'a46f9b694ae4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -86,13 +86,16 @@ def upgrade():
     op.create_table('review',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('gig_id', sa.Integer(), nullable=False),
+    sa.Column('booking_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('rating', sa.Integer(), nullable=False),
     sa.Column('comment', sa.Text(), nullable=True),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['booking_id'], ['booking.id'], ),
     sa.ForeignKeyConstraint(['gig_id'], ['gig.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('booking_id')
     )
     with op.batch_alter_table('review', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_review_timestamp'), ['timestamp'], unique=False)

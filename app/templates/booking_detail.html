@@ -13,11 +13,28 @@
       <button name="action" value="Decline" class="btn btn-danger">Decline</button>
     </form>
   {% endif %}
-    {% if current_user == booking.buyer and booking.status == 'Pending' %}
-        <form action="{{ url_for('create_checkout_session', booking_id=booking.id) }}" method="POST">
-            {{ form.hidden_tag() }}
-            <button type="submit" class="btn btn-primary">Pay Now</button>
-        </form>
-    {% endif %}
+
+  {% if current_user == booking.gig.seller and booking.status == 'Confirmed' %}
+    <form method="post" action="{{ url_for('complete_booking', booking_id=booking.id) }}">
+      {{ form.hidden_tag() }}
+      <button type="submit" class="btn btn-success">Mark as Completed</button>
+    </form>
+  {% endif %}
+
+  {% if current_user == booking.buyer and booking.status == 'Pending' %}
+      <form action="{{ url_for('create_checkout_session', booking_id=booking.id) }}" method="POST">
+          {{ form.hidden_tag() }}
+          <button type="submit" class="btn btn-primary">Pay Now</button>
+      </form>
+  {% endif %}
+
+  {% if current_user == booking.buyer and booking.status == 'Completed' %}
+      {% if not booking.review %}
+          <a href="{{ url_for('review', booking_id=booking.id) }}" class="btn btn-primary">Leave a Review</a>
+      {% else %}
+          <p>You have already reviewed this booking.</p>
+      {% endif %}
+  {% endif %}
+
 </div>
 {% endblock %}

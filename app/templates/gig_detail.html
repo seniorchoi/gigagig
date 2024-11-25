@@ -2,6 +2,11 @@
 
 {% block content %}
   <h1>{{ gig.title }}</h1>
+
+{% if gig.average_rating %}
+  <p>Average Rating: {{ gig.average_rating }} / 5</p>
+{% endif %}
+
   <p>{{ gig.description }}</p>
   <p>Price: ${{ gig.price }}</p>
   <p>Category: {{ gig.category.name }}</p>
@@ -28,15 +33,17 @@
 
   <h2>Reviews</h2>
   {% if gig.reviews %}
-      {% for review in gig.reviews %}
-          <div>
-              <p>Rating: {{ review.rating }}</p>
-              <p>{{ review.comment }}</p>
-              <p>By {{ review.user.username }} on {{ review.timestamp.strftime('%Y-%m-%d') }}</p>
-          </div>
-      {% endfor %}
+    {% for review in gig.reviews %}
+      <div class="card mb-2">
+        <div class="card-body">
+          <h5 class="card-title">Rating: {{ review.rating }} / 5</h5>
+          <p class="card-text">{{ review.comment }}</p>
+          <footer class="blockquote-footer">By {{ review.user.username }} on {{ review.timestamp.strftime('%Y-%m-%d') }}</footer>
+        </div>
+      </div>
+    {% endfor %}
   {% else %}
-      <p>No reviews yet.</p>
+    <p>No reviews yet.</p>
   {% endif %}
 
 {% endblock %}

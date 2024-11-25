@@ -264,7 +264,7 @@ def booking_detail(booking_id):
     if booking.buyer != current_user and booking.gig.seller != current_user:
         flash('You are not authorized to view this booking.')
         return redirect(url_for('index'))
-    return render_template('booking_detail.html', booking=booking, form=form)
+    return render_template('booking_detail.html', booking=booking, form=form, Review=Review)
 
 
 
@@ -327,14 +327,27 @@ def search_results():
 
 
 
-@app.route('/review/<int:gig_id>', methods=['GET', 'POST'])
+@app.route('/review/<int:booking_id>', methods=['GET', 'POST'])
 @login_required
-def review_gig(gig_id):
-    gig = Gig.query.get_or_404(gig_id)
+def review(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.buyer != current_user:
+        flash('You are not authorized to review this gig.')
+        return redirect(url_for('index'))
+    # Check if the booking is completed
+    if booking.status != 'Completed':
+        flash('You can only review completed bookings.')
+        return redirect(url_for('index'))
+    # Check if a review already exists for this booking
+    if booking.review is not None:
+        flash('You have already reviewed this booking.')
+        return redirect(url_for('gig_detail', gig_id=booking.gig_id))
+    
     form = ReviewForm()
     if form.validate_on_submit():
         review = Review(
-            gig=gig,
+            gig=booking.gig,
+            booking=booking,
             user=current_user,
             rating=form.rating.data,
             comment=form.comment.data
@@ -342,8 +355,22 @@ def review_gig(gig_id):
         db.session.add(review)
         db.session.commit()
         flash('Your review has been submitted.')
-        return redirect(url_for('gig_detail', gig_id=gig.id))
-    return render_template('review.html', form=form, gig=gig)
+        return redirect(url_for('gig_detail', gig_id=booking.gig_id))
+    return render_template('review.html', form=form, gig=booking.gig)
+
+
+
+@app.route('/complete_booking/<int:booking_id>', methods=['POST'])
+@login_required
+def complete_booking(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.gig.seller != current_user:
+        flash('You are not authorized to complete this booking.')
+        return redirect(url_for('index'))
+    booking.status = 'Completed'
+    db.session.commit()
+    flash('Booking marked as completed.')
+    return redirect(url_for('booking_detail', booking_id=booking.id))
 
 
 

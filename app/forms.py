@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, IntegerField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange
 from wtforms_sqlalchemy.fields import QuerySelectField
 from app.models import User, Category
 from wtforms.fields import DateTimeLocalField
@@ -95,7 +95,7 @@ class SearchForm(FlaskForm):
 
 
 class ReviewForm(FlaskForm):
-    rating = IntegerField('Rating (1-5)', validators=[DataRequired()])
+    rating = IntegerField('Rating (1-5)', validators=[DataRequired(), NumberRange(min=1, max=5)])
     comment = TextAreaField('Comment', validators=[DataRequired()])
     submit = SubmitField('Submit Review')
 
