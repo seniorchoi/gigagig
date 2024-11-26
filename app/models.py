@@ -43,6 +43,8 @@ class Gig(db.Model):
     location = db.Column(db.String(140), nullable=False)
     travel_radius = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
 
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     category = db.relationship('Category', back_populates='gigs')

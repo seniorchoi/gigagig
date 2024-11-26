@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Booking Has Been Accepted</title>
+</head>
+<body>
+    <p>Dear {{ booking.buyer.username }},</p>
+    <p>Your booking for the gig "<strong>{{ booking.gig.title }}</strong>" has been accepted by the seller.</p>
+    <p>Please proceed to make the payment to confirm your booking.</p>
+    <p><a href="{{ url_for('booking_detail', booking_id=booking.id, _external=True) }}">View Booking Details</a></p>
+    <p>Thank you for using our platform!</p>
+    <p>Best regards,<br>Your Company Name</p>
+</body>
+</html>

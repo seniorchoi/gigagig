@@ -8,6 +8,12 @@ from datetime import datetime
 import os
 from PIL import Image
 import stripe
+import requests
+from math import radians, cos, sin, asin, sqrt
+from app.email import send_email
+
+
+
 
 
 @app.before_request
@@ -15,6 +21,12 @@ def before_request():
     if current_user.is_authenticated:
         current_user.last_seen = datetime.utcnow()
         db.session.commit()
+
+
+
+@app.context_processor
+def inject_google_maps_key():
+    return dict(GOOGLE_MAPS_API_KEY=current_app.config['GOOGLE_MAPS_API_KEY'])
 
 
 
@@ -127,19 +139,35 @@ def edit_profile():
 def create_gig():
     form = GigForm()
     if form.validate_on_submit():
+        # Geocode the location
+        address = form.location.data
+        api_key = current_app.config['GOOGLE_MAPS_API_KEY']
+        geocode_url = f'https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={api_key}'
+        response = requests.get(geocode_url)
+        data = response.json()
+        if data['status'] == 'OK':
+            location_data = data['results'][0]['geometry']['location']
+            latitude = location_data['lat']
+            longitude = location_data['lng']
+        else:
+            flash('Could not geocode the provided address.')
+            return render_template('create_gig.html', title='Create Gig', form=form)
+
         gig = Gig(
-            seller=current_user,
             title=form.title.data,
             description=form.description.data,
-            price=float(form.price.data),
-            location=form.location.data,
-            travel_radius=float(form.travel_radius.data),
-            category=form.category.data
+            price=form.price.data,
+            category=form.category.data,
+            location=address,
+            latitude=latitude,
+            longitude=longitude,
+            travel_radius=form.travel_radius.data,
+            seller=current_user
         )
         db.session.add(gig)
         db.session.commit()
         flash('Your gig has been created!')
-        return redirect(url_for('user', username=current_user.username))
+        return redirect(url_for('gig_detail', gig_id=gig.id))
     return render_template('create_gig.html', title='Create Gig', form=form)
 
 
@@ -222,6 +250,12 @@ def send_message(username):
         msg = Message(sender=current_user, recipient=user, body=form.message.data)
         db.session.add(msg)
         db.session.commit()
+
+        # Send email notification to the recipient
+        subject = f'New message from {current_user.username}'
+        html_content = render_template('email/new_message.html', user=user, message=msg)
+        send_email(user.email, subject, html_content)
+
         flash('Your message has been sent.')
         return redirect(url_for('user', username=username))
     return render_template('send_message.html', form=form, recipient=user)
@@ -275,11 +309,21 @@ def update_booking_status(booking_id):
     if booking.gig.seller != current_user:
         flash('You are not authorized to update this booking.')
         return redirect(url_for('index'))
+
+    if booking.status != 'Pending':
+        flash('You can only update pending bookings.')
+        return redirect(url_for('booking_detail', booking_id=booking.id))
+
     action = request.form.get('action')
-    if action == 'Confirm':
-        booking.status = 'Confirmed'
+    if action == 'Accept':
+        booking.status = 'Accepted'
+        # Send email to buyer
+        subject = 'Your booking has been accepted!'
+        html_content = render_template('email/booking_accepted.html', booking=booking)
+        send_email(booking.buyer.email, subject, html_content)
     elif action == 'Decline':
         booking.status = 'Declined'
+        # Notify buyer that booking has been declined
     db.session.commit()
     flash(f'Booking has been {booking.status.lower()}.')
     return redirect(url_for('booking_detail', booking_id=booking.id))
@@ -298,13 +342,28 @@ def search():
 
 
 
+def haversine(lon1, lat1, lon2, lat2):
+    # Calculate the great circle distance between two points
+    # on the earth (specified in decimal degrees)
+    # Convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * asin(sqrt(a))
+    km = 6371 * c  # Radius of earth in kilometers
+    return km
+
+
+
 @app.route('/search_results')
 def search_results():
     keyword = request.args.get('keyword', '')
     category_id = request.args.get('category_id', type=int)
     location = request.args.get('location', '')
+    radius = request.args.get('radius', type=int)
 
-    # Start with all gigs
     query = Gig.query
 
     # Filter by keyword
@@ -318,11 +377,35 @@ def search_results():
     if category_id:
         query = query.filter_by(category_id=category_id)
 
-    # Filter by location
-    if location:
-        query = query.filter(Gig.location.ilike(f'%{location}%'))
-
     gigs = query.all()
+
+    # Filter by proximity
+    if location and radius:
+        # Geocode user's location
+        address = location
+        api_key = current_app.config['GOOGLE_MAPS_API_KEY']
+        geocode_url = f'https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={api_key}'
+        response = requests.get(geocode_url)
+        data = response.json()
+        if data['status'] == 'OK':
+            user_location = data['results'][0]['geometry']['location']
+            user_lat = user_location['lat']
+            user_lon = user_location['lng']
+
+            # Filter gigs within radius
+            nearby_gigs = []
+            for gig in gigs:
+                if gig.latitude and gig.longitude:
+                    distance = haversine(user_lon, user_lat, gig.longitude, gig.latitude)
+                    if distance <= radius:
+                        nearby_gigs.append(gig)
+            gigs = nearby_gigs
+        else:
+            flash('Could not geocode the provided location.')
+            gigs = []
+    else:
+        gigs = query.all()
+
     return render_template('search_results.html', gigs=gigs, keyword=keyword, location=location)
 
 
@@ -367,9 +450,15 @@ def complete_booking(booking_id):
     if booking.gig.seller != current_user:
         flash('You are not authorized to complete this booking.')
         return redirect(url_for('index'))
+
+    if booking.status != 'Confirmed':
+        flash('Only confirmed bookings can be marked as completed.')
+        return redirect(url_for('booking_detail', booking_id=booking.id))
+
     booking.status = 'Completed'
     db.session.commit()
     flash('Booking marked as completed.')
+    # Notify buyer that booking is completed
     return redirect(url_for('booking_detail', booking_id=booking.id))
 
 
@@ -407,6 +496,10 @@ def create_checkout_session(booking_id):
         flash('You are not authorized to make this payment.')
         return redirect(url_for('index'))
     
+    if booking.status != 'Accepted':
+        flash('Payment can only be made for accepted bookings.')
+        return redirect(url_for('booking_detail', booking_id=booking.id))
+    
     session = stripe.checkout.Session.create(
         payment_method_types=['card'],
         line_items=[{
@@ -432,9 +525,14 @@ def create_checkout_session(booking_id):
 @login_required
 def payment_success(booking_id):
     booking = Booking.query.get_or_404(booking_id)
-    booking.status = 'Paid'
+    if booking.buyer != current_user:
+        flash('You are not authorized to access this page.')
+        return redirect(url_for('index'))
+
+    booking.status = 'Confirmed'
     db.session.commit()
     flash('Payment successful! Your booking is confirmed.')
+    # Notify seller that booking has been confirmed
     return redirect(url_for('booking_detail', booking_id=booking.id))
 
 

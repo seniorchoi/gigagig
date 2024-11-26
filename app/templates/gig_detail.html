@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head %}
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap&v=weekly" loading="lazy"></script>
+{% endblock %}
+
 {% block content %}
   <h1>{{ gig.title }}</h1>
 
@@ -27,6 +31,9 @@
     {% endif %}
 
 
+    <div id="map" style="height: 400px; width: 100%;"></div>
+
+
   {% if gig.average_rating %}
       <p>Average Rating: {{ gig.average_rating }}</p>
   {% endif %}
@@ -45,5 +52,24 @@
   {% else %}
     <p>No reviews yet.</p>
   {% endif %}
-
+  
+  <script>
+    function initMap() {
+      var gigLocation = { lat: {{ gig.latitude }}, lng: {{ gig.longitude }} };
+      var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 14,
+        center: gigLocation
+      });
+      var marker = new google.maps.Marker({
+        position: gigLocation,
+        map: map
+      });
+    }
+    // Initialize the map after the API has loaded
+    if (typeof google !== 'undefined') {
+      initMap();
+    } else {
+      window.onload = initMap;
+    }
+  </script>
 {% endblock %}

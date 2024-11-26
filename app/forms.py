@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, IntegerField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, NumberRange, Optional
 from wtforms_sqlalchemy.fields import QuerySelectField
 from app.models import User, Category
 from wtforms.fields import DateTimeLocalField
@@ -55,7 +55,7 @@ class EmptyForm(FlaskForm):
 class GigForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[DataRequired()])
-    price = StringField('Price', validators=[DataRequired()])
+    price = StringField('Price ($)', validators=[DataRequired()])
     location = StringField('Location', validators=[DataRequired()])
     travel_radius = StringField('Travel Radius (km)', validators=[DataRequired()])
     submit = SubmitField('Create Gig')
@@ -90,6 +90,7 @@ class SearchForm(FlaskForm):
     keyword = StringField('Keyword')
     category = QuerySelectField('Category', query_factory=category_query, get_label='name', allow_blank=True)
     location = StringField('Location')
+    radius = IntegerField('Radius (km)', validators=[Optional()])
     submit = SubmitField('Search')
 
 
