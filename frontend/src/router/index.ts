@@ -7,7 +7,6 @@
 // Composables
 import { createRouter, createWebHistory } from 'vue-router/auto'
 import HomeView from '../pages/index.vue'
-import LoginPage from '@/pages/LoginPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,7 +19,12 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginPage
+      component: () => import('@/pages/LoginPage.vue'), // Lazy-loaded component
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/pages/RegistrationPage.vue'), // Lazy-loaded component
     },
   ]
 })
