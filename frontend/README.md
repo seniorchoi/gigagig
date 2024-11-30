@@ -18,7 +18,7 @@ This is the Gigagig Mobile First Responsive Web Client
 Set up your project using your preferred package manager. Use the corresponding command to install the dependencies:
 
 ```bash
-# This installs the required nodenv version for this project
+# This installs the required node version for this project
 nodenv install
 
 # This installs the dependencies for this project
